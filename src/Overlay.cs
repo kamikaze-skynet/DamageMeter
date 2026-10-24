@@ -31,6 +31,9 @@ public class Overlay : MonoBehaviour
 
     private static readonly Dictionary<string, string> nameCache = new();
     private static readonly Dictionary<ulong, string> playerNames = new();
+    private static readonly Dictionary<ulong, Color> playerColors = new();
+
+    private static Color PlayerColor(ulong id, Color fallback) => playerColors.TryGetValue(id, out var c) ? c : fallback;
     private static float nextNameScan;
 
     private void Update()
@@ -184,7 +187,7 @@ public class Overlay : MonoBehaviour
 
         foreach (var r in rows)
         {
-            string col = ColorUtility.ToHtmlStringRGB(Brighten(r.Color));
+            string col = ColorUtility.ToHtmlStringRGB(Brighten(PlayerColor(r.Id, r.Color)));
             sb.Append('\n');
             sb.Append("<color=#").Append(col).Append('>').Append(Trim(PlayerName(r.Id), 16)).Append("</color>");
             sb.Append("<pos=50%>").Append(Short(r.Dps));
@@ -249,6 +252,7 @@ public class Overlay : MonoBehaviour
                     string n = null;
                     try { n = p.GetDisplayName(); } catch { }
                     if (!string.IsNullOrWhiteSpace(n)) playerNames[p.OwnerClientId] = n;
+                    try { var c = p.PlayerColor; if (c.a > 0.01f) playerColors[p.OwnerClientId] = c; } catch { }
                 }
             }
             catch { }

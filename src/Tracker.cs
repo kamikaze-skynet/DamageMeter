@@ -138,7 +138,7 @@ internal static class Tracker
     private enum Kind : byte { None, Player, Spell, Explosion, Tornado }
 
     private static readonly Dictionary<IntPtr, Kind> kinds = new();
-    private static int offClientId = -1, offColor = -1, offSpell = -1, offOwner = -1, offTornado = -1;
+    private static int offClientId = -1, offSpell = -1, offOwner = -1, offTornado = -1;
     private static float nextErrorLog;
 
     [HarmonyPatch(typeof(EnemyHealthContainer), nameof(EnemyHealthContainer.RecordDamageDealtToEnemy))]
@@ -176,11 +176,6 @@ internal static class Tracker
             if (a.BucketSecond[i] != sec) { a.BucketSecond[i] = sec; a.Buckets[i] = 0f; }
             a.Buckets[i] += amount;
 
-            if (!a.HasColor && kind is Kind.Spell or Kind.Player && offColor >= 0)
-            {
-                var c = *(Color*)(p + offColor);
-                if (c.a > 0.01f) { a.Color = c; a.HasColor = true; }
-            }
         }
         catch (Exception ex)
         {
@@ -196,15 +191,13 @@ internal static class Tracker
         {
             if (Is(klass, Il2CppClassPointerStore<PlayerSpellDamageInfo>.NativeClassPtr))
             {
-                offClientId = offClientId >= 0 ? offClientId : Offset(klass, "<ClientId>k__BackingField");
-                offColor = offColor >= 0 ? offColor : Offset(klass, "<Color>k__BackingField");
+                offClientId = offClientId >= 0 ? offClientId : Offset(klass, "<OwnerClientId>k__BackingField");
                 offSpell = offSpell >= 0 ? offSpell : Offset(klass, "<Spell>k__BackingField");
                 return offClientId > 0 && offSpell > 0 ? Kind.Spell : Kind.None;
             }
             if (Is(klass, Il2CppClassPointerStore<PlayerDamageInfo>.NativeClassPtr))
             {
-                offClientId = offClientId >= 0 ? offClientId : Offset(klass, "<ClientId>k__BackingField");
-                offColor = offColor >= 0 ? offColor : Offset(klass, "<Color>k__BackingField");
+                offClientId = offClientId >= 0 ? offClientId : Offset(klass, "<OwnerClientId>k__BackingField");
                 return offClientId > 0 ? Kind.Player : Kind.None;
             }
             if (Is(klass, Il2CppClassPointerStore<PlayerExplosionDamageInfo>.NativeClassPtr))
@@ -234,7 +227,7 @@ internal static class Tracker
             if (f != IntPtr.Zero) return (int)IL2CPP.il2cpp_field_get_offset(f);
         }
         Plugin.Log.LogWarning($"Field {field} not found; that kind of damage won't be counted.");
-        return 0;
+        return -1;
     }
 
     // ---------- snapshots ----------
@@ -274,7 +267,7 @@ internal static class Tracker
         {
             if (nm.CustomMessagingManager == null || Tracker.ClientCount(nm) <= 1) return;
             string payload = Serialize(rows, RunSeconds);
-            var writer = new FastBufferWriter(Encoding.UTF8.GetByteCount(payload) + 64, Allocator.Temp, -1);
+            var writer = new FastBufferWriter(payload.Length * 2 + 64, Allocator.Temp, -1);
             try
             {
                 writer.WriteValueSafe(payload, false);
