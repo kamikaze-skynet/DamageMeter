@@ -1,0 +1,9 @@
+{
+  "name": "DamageMeter",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/kamikaze-skynet/DamageMeter",
+  "description": "A live damage meter: each player's DPS, total and share of the party's damage, broken down by spell. Works in single player and multiplayer.",
+  "dependencies": [
+    "BepInEx-BepInExPack_IL2CPP-6.0.788"
+  ]
+}
