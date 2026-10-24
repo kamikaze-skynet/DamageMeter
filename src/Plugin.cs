@@ -15,12 +15,13 @@ public class Plugin : BasePlugin
 {
     public const string Guid = "girthy_mods.DamageMeter";
     public const string Name = "DamageMeter";
-    public const string Version = "1.0.0";
+    public const string Version = "1.1.0";
 
     internal static new ManualLogSource Log;
 
     internal static ConfigEntry<bool> Enabled;
     internal static ConfigEntry<bool> Visible;
+    internal static ConfigEntry<bool> ShowTab;
     internal static ConfigEntry<bool> Detailed;
     internal static ConfigEntry<bool> ShowWhenSolo;
     internal static ConfigEntry<bool> KeepAfterRun;
@@ -44,6 +45,7 @@ public class Plugin : BasePlugin
             new ConfigDescription("DPS is the damage of the last this-many seconds (game time, so shops and pauses don't count).", new AcceptableValueRange<int>(1, 60)));
 
         Visible = Config.Bind("Display", "Visible", true, "Show the meter (the toggle key flips this).");
+        ShowTab = Config.Bind("Display", "ShowTabWhenHidden", true, "When the meter is hidden, leave a small DAMAGE tab you can click to bring it back.");
         Detailed = Config.Bind("Display", "ShowSpells", true, "Show each player's damage per spell (the detail key flips this).");
         ShowWhenSolo = Config.Bind("Display", "ShowWhenSolo", true, "Show the meter in single player too.");
         KeepAfterRun = Config.Bind("Display", "KeepAfterRun", true, "Keep showing the last run's numbers after it ends, until the next run starts.");

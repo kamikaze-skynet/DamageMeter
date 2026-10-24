@@ -9,6 +9,12 @@ A live damage meter for The Spell Brigade.
 
 The host needs the mod for anyone to see numbers in multiplayer. Clients who don't have it aren't affected.
 
+## Showing and hiding
+
+- Click **X** on the meter to hide it. A small **DAMAGE** tab stays in its place; click the tab to bring the meter back.
+- Click **Spells** to turn the per-spell lines on or off.
+- The keys below do the same. Your choice is remembered between games.
+
 ## Keys
 
 | Key | What it does |
@@ -24,6 +30,7 @@ The host needs the mod for anyone to see numbers in multiplayer. Clients who don
 | `General.DpsWindowSeconds` | `10` | DPS covers the last this-many seconds of game time. Shops and pauses don't count. |
 | `Display.Visible` | `true` | Shows the meter. F3 flips this. |
 | `Display.ShowSpells` | `true` | Shows the per-spell lines. F4 flips this. |
+| `Display.ShowTabWhenHidden` | `true` | Leaves a clickable DAMAGE tab while the meter is hidden. |
 | `Display.ShowWhenSolo` | `true` | Shows the meter in single player too. |
 | `Display.KeepAfterRun` | `true` | Keeps the last run's numbers until the next run starts. |
 | `Display.MaxSpellsPerPlayer` | `8` | Spell lines per player. Any spells beyond this are summed as "other". |

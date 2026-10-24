@@ -8,6 +8,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
+using UnityEngine.Events;
+using Il2CppInterop.Runtime;
 using UObject = UnityEngine.Object;
 
 namespace DamageMeter;
@@ -23,7 +25,9 @@ public class Overlay : MonoBehaviour
 
     private const float Width = 330f;
 
-    private GameObject canvasGo, panel;
+    private GameObject canvasGo, panel, tab;
+    private TextMeshProUGUI spellsLabel;
+    private static UnityAction hideAct, showAct, spellsAct;
     private RectTransform panelRt, textRt;
     private TextMeshProUGUI text;
     private float nextRefresh, nextErrorLog;
@@ -49,11 +53,22 @@ public class Overlay : MonoBehaviour
 
             Tracker.HostTick();
 
-            bool show = Plugin.Enabled.Value && Plugin.Visible.Value && (Tracker.Playing || (!Tracker.InRun && Tracker.HaveData && Plugin.KeepAfterRun.Value));
-            if (show && !Plugin.ShowWhenSolo.Value && IsSolo()) show = false;
-            if (!show) { if (panel != null && panel.activeSelf) panel.SetActive(false); return; }
+            bool available = Plugin.Enabled.Value && (Tracker.Playing || (!Tracker.InRun && Tracker.HaveData && Plugin.KeepAfterRun.Value));
+            if (available && !Plugin.ShowWhenSolo.Value && IsSolo()) available = false;
+            bool show = available && Plugin.Visible.Value;
+            bool showTab = available && !Plugin.Visible.Value && Plugin.ShowTab.Value;
+            if (!show && !showTab)
+            {
+                if (panel != null && !panel.WasCollected && panel.activeSelf) panel.SetActive(false);
+                if (tab != null && !tab.WasCollected && tab.activeSelf) tab.SetActive(false);
+                return;
+            }
 
             if (!Build()) return;
+            Place();
+            if (tab.activeSelf != showTab) tab.SetActive(showTab);
+            if (!show) { if (panel.activeSelf) panel.SetActive(false); return; }
+            spellsLabel.text = Plugin.Detailed.Value ? "Spells: on" : "Spells: off";
             string s = Compose();
             if (s != lastText)
             {
@@ -62,10 +77,10 @@ public class Overlay : MonoBehaviour
                 float h = 0f;
                 try { h = text.GetPreferredValues(s, Width - 20f, 0f).y; } catch { }
                 if (h <= 0f) h = s.Split('\n').Length * 18f;
-                panelRt.sizeDelta = new Vector2(Width, h + 16f);
+                panelRt.sizeDelta = new Vector2(Width, h + 16f + HeaderHeight);
                 textRt.sizeDelta = new Vector2(Width - 20f, h + 4f);
+                textRt.anchoredPosition = new Vector2(0f, -HeaderHeight / 2f);
             }
-            Place();
             if (!panel.activeSelf) panel.SetActive(true);
         }
         catch (Exception ex)
@@ -115,6 +130,11 @@ public class Overlay : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
+        canvasGo.AddComponent<GraphicRaycaster>();
+
+        hideAct ??= DelegateSupport.ConvertDelegate<UnityAction>(new Action(() => Plugin.Visible.Value = false));
+        showAct ??= DelegateSupport.ConvertDelegate<UnityAction>(new Action(() => Plugin.Visible.Value = true));
+        spellsAct ??= DelegateSupport.ConvertDelegate<UnityAction>(new Action(() => Plugin.Detailed.Value = !Plugin.Detailed.Value));
 
         panel = new GameObject("Panel");
         panelRt = panel.AddComponent<RectTransform>();
@@ -137,8 +157,52 @@ public class Overlay : MonoBehaviour
         text.color = Color.white;
         textRt.anchorMin = textRt.anchorMax = textRt.pivot = new Vector2(0.5f, 0.5f);
         textRt.anchoredPosition = Vector2.zero;
+        // Header buttons (top-right of the panel): per-spell lines on/off, and hide.
+        spellsLabel = MakeButton(panel.transform, font, "Spells: on", new Vector2(-40f, -4f), new Vector2(92f, 20f), spellsAct, new Color(0.3f, 0.22f, 0.5f, 0.9f));
+        MakeButton(panel.transform, font, "Hide", new Vector2(-6f, -4f), new Vector2(30f, 20f), hideAct, new Color(0.5f, 0.2f, 0.25f, 0.9f)).text = "X";
+
+        // The tab that brings it back when hidden.
+        tab = new GameObject("Tab");
+        var tabRt = tab.AddComponent<RectTransform>();
+        tab.transform.SetParent(canvasGo.transform, false);
+        tabRt.sizeDelta = new Vector2(110f, 26f);
+        var timg = tab.AddComponent<Image>();
+        timg.color = new Color(0.06f, 0.04f, 0.12f, 0.85f);
+        var tbtn = tab.AddComponent<Button>();
+        tbtn.targetGraphic = timg;
+        tbtn.onClick.AddListener(showAct);
+        var tl = new GameObject("Label").AddComponent<TextMeshProUGUI>();
+        tl.rectTransform.SetParent(tab.transform, false);
+        tl.rectTransform.sizeDelta = tabRt.sizeDelta;
+        tl.font = font; tl.fontSize = 14f; tl.alignment = TextAlignmentOptions.Center; tl.raycastTarget = false;
+        tl.text = "<b>DAMAGE</b>  show";
+        tab.SetActive(false);
+
         lastText = "";
         return true;
+    }
+
+    private const float HeaderHeight = 22f;
+
+    private static TextMeshProUGUI MakeButton(Transform parent, TMP_FontAsset font, string label, Vector2 pos, Vector2 size, UnityAction act, Color color)
+    {
+        var go = new GameObject("Button");
+        var rt = go.AddComponent<RectTransform>();
+        go.transform.SetParent(parent, false);
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = size;
+        var img = go.AddComponent<Image>();
+        img.color = color;
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(act);
+        var t = new GameObject("Label").AddComponent<TextMeshProUGUI>();
+        t.rectTransform.SetParent(go.transform, false);
+        t.rectTransform.sizeDelta = size;
+        t.font = font; t.fontSize = 12f; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
+        t.text = label;
+        return t;
     }
 
     private void Place()
@@ -158,6 +222,11 @@ public class Overlay : MonoBehaviour
         float x = a.x < 0.5f ? Plugin.OffsetX.Value : -Plugin.OffsetX.Value;
         float y = a.y > 0.5f ? -Plugin.OffsetY.Value : a.y < 0.5f ? Plugin.OffsetY.Value : Plugin.OffsetY.Value;
         panelRt.anchoredPosition = new Vector2(x, y);
+
+        var trt = tab.GetComponent<RectTransform>();
+        trt.localScale = panelRt.localScale;
+        trt.anchorMin = trt.anchorMax = trt.pivot = a;
+        trt.anchoredPosition = new Vector2(x, y);
     }
 
     private string Compose()
