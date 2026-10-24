@@ -15,7 +15,7 @@ public class Plugin : BasePlugin
 {
     public const string Guid = "girthy_mods.DamageMeter";
     public const string Name = "DamageMeter";
-    public const string Version = "1.1.0";
+    public const string Version = "1.1.1";
 
     internal static new ManualLogSource Log;
 

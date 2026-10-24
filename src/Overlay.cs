@@ -55,6 +55,7 @@ public class Overlay : MonoBehaviour
 
             bool available = Plugin.Enabled.Value && (Tracker.Playing || (!Tracker.InRun && Tracker.HaveData && Plugin.KeepAfterRun.Value));
             if (available && !Plugin.ShowWhenSolo.Value && IsSolo()) available = false;
+            if (available && PauseMenuOpen()) available = false; // don't sit on top of the pause menu
             bool show = available && Plugin.Visible.Value;
             bool showTab = available && !Plugin.Visible.Value && Plugin.ShowTab.Value;
             if (!show && !showTab)
@@ -89,6 +90,26 @@ public class Overlay : MonoBehaviour
             nextErrorLog = Time.unscaledTime + 10f;
             Plugin.Log.LogError($"Overlay: {ex}");
         }
+    }
+
+    private static PauseMenuManager pauseMenu;
+    private static float nextPauseLookup;
+
+    private static bool PauseMenuOpen()
+    {
+        try
+        {
+            if (pauseMenu is null || pauseMenu.WasCollected || pauseMenu == null)
+            {
+                if (Time.unscaledTime < nextPauseLookup) return false;
+                nextPauseLookup = Time.unscaledTime + 2f;
+                pauseMenu = UObject.FindObjectOfType<PauseMenuManager>();
+                if (pauseMenu == null) return false;
+            }
+            var p = pauseMenu.pauseMenuPanel;
+            return p != null && p.activeInHierarchy;
+        }
+        catch { return false; }
     }
 
     private static bool IsSolo()

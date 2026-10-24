@@ -313,7 +313,7 @@ internal static class Tracker
                 var f = parts[i].Split(',');
                 if (f.Length < 5) continue;
                 var r = new Row { Id = ulong.Parse(f[0], c), Total = double.Parse(f[2], c), Dps = double.Parse(f[3], c) };
-                if (ColorUtility.TryParseHtmlString("#" + f[1], out var col)) r.Color = col;
+                r.Color = ParseHex(f[1]);
                 if (f[4].Length > 0)
                     foreach (var s in f[4].Split('/'))
                     {
@@ -326,6 +326,18 @@ internal static class Tracker
             HaveData = true;
         }
         catch (Exception ex) { Plugin.Log.LogError($"Reading damage snapshot: {ex.Message}"); }
+    }
+
+    // ColorUtility's parser may be stripped from the game build (its RGBA formatter is); parse "RRGGBB" ourselves.
+    private static Color ParseHex(string s)
+    {
+        try
+        {
+            if (s == null || s.Length < 6) return Color.white;
+            float H(int i) => int.Parse(s.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255f;
+            return new Color(H(0), H(2), H(4), 1f);
+        }
+        catch { return Color.white; }
     }
 
     internal static int ClientCount(NetworkManager nm)
