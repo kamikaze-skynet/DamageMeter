@@ -22,7 +22,7 @@ The host needs the mod for anyone to see numbers in multiplayer. Clients who don
 | F3 | Show or hide the meter |
 | F4 | Show or hide the per-spell lines |
 
-## Config (`girthy_mods.DamageMeter.cfg`)
+## Config (in your mod manager's config editor)
 
 | Setting | Default | What it does |
 |---|---|---|
